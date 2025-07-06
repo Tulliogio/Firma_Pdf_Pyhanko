@@ -9,10 +9,6 @@ Una aplicación web sencilla y autocontenida para firmar digitalmente documentos
 
 Este proyecto fue desarrollado como una solución práctica para aplicar firmas digitales visibles a documentos PDF sin necesidad de instalar software de escritorio pesado.
 
-## ✨ Vista Previa
-
-
-*(Imagen de ejemplo del dashboard principal)*
 
 ## 🚀 Características Principales
 
