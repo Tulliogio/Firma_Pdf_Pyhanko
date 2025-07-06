@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firmador de PDF</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            
+            /* ======== ¡ESTE ES EL CAMBIO! UN GRIS CLARO Y PROFESIONAL ======== */
+            background-color: #e9ecef;
+            
+            color: #333; 
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        main {
+            padding: 2em;
+            flex: 1;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: auto; 
+            background: white; 
+            padding: 2.5em;
+            border-radius: 8px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        h1 { 
+            color: #0056b3; 
+            text-align: center; 
+            margin-top: 0;
+        }
+        form { display: flex; flex-direction: column; gap: 1.5em; }
+        fieldset { border: 1px solid #ddd; border-radius: 5px; padding: 1.5em; }
+        legend { font-weight: bold; color: #0056b3; padding: 0 0.5em; }
+        label { font-weight: 500; display: block; margin-bottom: 0.5em; }
+        input[type="file"], input[type="password"], input[type="number"] {
+            width: 100%; padding: 0.8em; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
+        }
+        .position-options label { font-weight: normal; display: block; margin-right: 1em; }
+        .custom-coords { display: none; margin-top: 1em; padding: 1em; background: #f9f9f9; border: 1px dashed #ccc; border-radius: 4px; }
+        .custom-coords div { display: flex; gap: 1em; align-items: center; }
+        .custom-coords input { flex: 1; }
+        button { background-color: #007bff; color: white; padding: 1em; border: none; border-radius: 5px; font-size: 1em; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        .error { background-color: #f8d7da; color: #721c24; padding: 1em; border: 1px solid #f5c6cb; border-radius: 5px; margin-bottom: 1em; }
+
+        header {
+            background-color: #0056b3;
+            color: white;
+            padding: 1em 2em;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            flex-shrink: 0;
+        }
+        .header-content {
+            max-width: 800px;
+            margin: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h2 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+        header nav ul {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            gap: 1.5em;
+        }
+        header nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        header nav a:hover {
+            text-decoration: underline;
+        }
+        footer {
+            background-color: #343a40;
+            color: #f8f9fa;
+            text-align: center;
+            padding: 1.5em 0;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-content">
+            <h2>Firmador PDF</h2>
+            <nav>
+                <ul>
+                    <li><a href="#">Inicio</a></li>
+                    <li><a href="#">Acerca de</a></li>
+                    <li><a href="#">Contacto</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <h1>Firmador de Documentos PDF</h1>
+
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+
+            <form action="/" method="post" enctype="multipart/form-data">
+                <!-- El contenido del formulario no se ha modificado -->
+                <fieldset>
+                    <legend>1. Certificado Digital</legend>
+                    <label for="pfx_file">Archivo de Certificado (.pfx):</label>
+                    <input type="file" id="pfx_file" name="pfx_file" accept=".pfx" required>
+                    <label for="pfx_password" style="margin-top: 1em;">Contraseña del Certificado:</label>
+                    <input type="password" id="pfx_password" name="pfx_password" required>
+                </fieldset>
+                <fieldset>
+                    <legend>2. Documentos a Firmar</legend>
+                    <label for="pdf_files">Archivos PDF (puedes seleccionar varios):</label>
+                    <input type="file" id="pdf_files" name="pdf_files" accept=".pdf" multiple required>
+                </fieldset>
+                <fieldset>
+                    <legend>3. Opciones de Firma</legend>
+                    <p>La misma configuración se aplicará a todos los PDFs.</p>
+                    <label for="page_number">Número de página para la firma:</label>
+                    <input type="number" id="page_number" name="page_number" value="1" min="1" required>
+                    <label style="margin-top: 1em;">Posición de la firma:</label>
+                    <div class="position-options">
+                        {% for key, value in positions.items() %}
+                        <label>
+                            <input type="radio" name="position" value="{{ key }}" {% if loop.first %}checked{% endif %} onchange="toggleCustomCoords()"> {{ value.name }}
+                        </label>
+                        {% endfor %}
+                        <label>
+                            <input type="radio" name="position" value="custom" onchange="toggleCustomCoords()"> Personalizada
+                        </label>
+                    </div>
+                    <div id="custom-coords-box" class="custom-coords">
+                        <p>Coordenadas (x1, y1, x2, y2) desde la esquina inferior izquierda.</p>
+                        <div style="display: flex; gap: 1em;">
+                            <input type="number" name="x1" placeholder="x1 (ej: 50)">
+                            <input type="number" name="y1" placeholder="y1 (ej: 50)">
+                            <input type="number" name="x2" placeholder="x2 (ej: 200)">
+                            <input type="number" name="y2" placeholder="y2 (ej: 100)">
+                        </div>
+                    </div>
+                </fieldset>
+                <button type="submit">Firmar Documentos</button>
+            </form>
+        </div>
+    </main>
+
+    <footer>
+        <p>© {{ current_year }} - Desarrollado por Giovanni Tullio</p>
+    </footer>
+
+    <script>
+        function toggleCustomCoords() {
+            const customRadio = document.querySelector('input[name="position"][value="custom"]');
+            const customBox = document.getElementById('custom-coords-box');
+            customBox.style.display = customRadio.checked ? 'block' : 'none';
+        }
+        document.addEventListener('DOMContentLoaded', toggleCustomCoords);
+    </script>
+</body>
+</html>
